@@ -25,3 +25,6 @@ facebook$
 
 # matches domain names with 'facebook' followed by a hyphen and then one or more word characters (a-z, A-Z, 0-9, _)
 facebook-\w+
+
+# match "standard" and "bank"  --> I am not sure if this is working well :-)
+(?=.*trust)(?=.*bank)
