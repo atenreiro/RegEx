@@ -1,0 +1,2 @@
+# matches domain names that start with 'google'
+^google

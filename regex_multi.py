@@ -2,58 +2,55 @@ import re
 import time
 import concurrent.futures
 from tqdm import tqdm
+import os
 
-# Measure the script running time
 start_time = time.time()
 
-
-def search_keyword(keyword):
+def search_keyword(data):
+    keyword, domain_names = data
     matches = []
     pattern = re.compile(keyword)
 
-    with open('domain-names.txt', 'r', encoding='utf-8') as dn:
-        for dn_line in dn:
-            match = pattern.search(dn_line)
-            if match:
-                matches.append(match.group())
+    for dn_line in domain_names:
+        match = pattern.search(dn_line)
+        if match:
+            matches.append(dn_line)
+            #print(dn_line)
 
-    result = {
+    return {
         'keyword': keyword,
         'matches': matches
     }
 
-    return result
-
-
 def is_valid_regex(pattern):
     try:
-        re.compile(pattern)
-        return True
+        return re.compile(pattern)
     except re.error:
-        return False
-
+        return None
 
 def keyword_check():
     keywords = []
 
+    with open('domain-names.txt', 'r', encoding='utf-8') as dn:
+        domain_names = dn.readlines()
+
     with open('keywords.txt', 'r', encoding='utf-8') as kw:
         for kw_line in kw:
             kw_line = kw_line.strip()
-
             if kw_line.startswith(("#", " ")) or not kw_line:
-                #print("Skipped comment or special character:", kw_line)
                 continue
 
-            if not is_valid_regex(kw_line):
+            compiled_pattern = is_valid_regex(kw_line)
+            if compiled_pattern:
+                print(kw_line, "is a valid pattern")
+                keywords.append(kw_line)
+            else:
                 print(kw_line, "is an invalid pattern! Exiting...")
-                exit(-1)
-
-            print(kw_line, "is a valid pattern")
-            keywords.append(kw_line)
+                os.exit(1)
 
     # Utilizing parallel processing for searching keywords
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        results = list(tqdm(executor.map(search_keyword, keywords),
+        results = list(tqdm(executor.map(search_keyword, [(k, domain_names) for k in keywords]),
                             total=len(keywords), desc="Processing Keywords"))
 
     for result in results:
@@ -61,12 +58,8 @@ def keyword_check():
         for match in result['matches']:
             print(match)
         print("Total matches:", len(result['matches']))
-        print("\n")
-
 
 if __name__ == "__main__":
     keyword_check()
-
-    # Calculate and print the execution time
     elapsed_time = time.time() - start_time
     print(f"\nScript executed in {elapsed_time:.2f} seconds.")
